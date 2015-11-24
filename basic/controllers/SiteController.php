@@ -17,9 +17,154 @@ use app\models\Alumnos;
 use app\models\FormSearch;
 use yii\helpers\Html;
 use yii\data\Pagination;
+use yii\helpers\Url;
  
 class SiteController extends Controller
 {   
+    public function actionUpdate()
+    {
+        $model = new FormAlumnos;
+        $msg = null;
+
+        if($model->load(Yii::$app->request->post()))
+        {
+
+            if($model->validate())
+            {
+
+                $table = Alumnos::findOne($model->id_alumno);
+
+                if($table)
+                {
+
+                    /* Le asignamos a cada columna su nuevo valor */
+                    $table->nombre = $model->nombre;
+                    $table->apellidos = $model->apellidos;
+                    $table->clase = $model->clase;
+                    $table->nota_final = $model->nota_final;
+
+                    /* Llamamos al metodo update */
+                    if($table->update())
+                    {
+                        $msg = "El alumno ha sido actualizado correctamente";
+
+                    }
+                    else
+                    {
+                        $msg = "El alumno no ha podido ser modificado, intentelo mas tarde";
+                    }
+
+                }
+                else
+                {
+                    $msg = "El alumno seleccionado no ha sido encontrado ";
+                }
+
+
+            }
+            else 
+            {
+                return getErrors();
+            }
+
+        }
+
+
+        if(Yii::$app->request->get("id_alumno"))
+        {
+
+            $id_alumno = Html::encode($_GET["id_alumno"]);
+
+            if( (int) $id_alumno)
+            {
+                /* Guardamos en table la clave primaria con el metodo
+                findOne del objeto Alumno */
+                $table = Alumnos::findOne($id_alumno);
+
+                /* Validamos que el registro exista */
+                if($table)
+                {
+                    /* Cargamos la data en los campos del formulario */
+                    $model->id_alumno = $table->id_alumno;
+                    $model->nombre = $table->nombre;
+                    $model->apellidos = $table->apellidos;
+                    $model->clase = $table->clase;
+                    $model->nota_final = $table->nota_final;
+
+                }
+                else
+                {
+                    return $this->redirect(["site/view"]);
+                }
+
+            }
+            else
+            {
+                return $this->redirect(["site/view"]);
+            }
+
+        }
+        else
+        {
+            return $this->redirect(["site/view"]);
+        }
+
+        return $this->render("update", ["model" => $model, "msg" => $msg]);
+    }
+
+    public function actionDelete()
+    {
+
+        /* Si el formulario es enviado por POST */
+        if(Yii::$app->request->post())
+        {  
+            /* Guardamos en una variable el id enviado por post con el metodo
+             de Html::encode($_POST["el nombre del id"]) */
+            $id_alumno = Html::encode($_POST["id_alumno"]);
+
+            /* Validamos que el valor enviado sea entero */
+            if( (int) $id_alumno)
+            {
+
+                /* Si es un entero procedemos a eliminarlo 
+                Accediendo al objeto Alumnos y al metodo deleteAll el cual
+                recibe 2 parametros el campo del WHERE y su valor */
+                if(Alumnos::deleteAll("id_alumno=:id_alumno", [":id_alumno" => $id_alumno]))
+                {
+                    echo "Alumno con id $id_alumno eliminado con éxito, redireccionando ... ";
+                    /* Redireccionamos a los 3 segundos con la etiqueta meta */
+                    echo "<meta http-equiv='refresh' content='3; ". Url::toRoute("site/view") ."'>";
+
+                }
+                else 
+                {
+                    echo "En estos momentos no se puede eliminar al alumnos
+                    por favor intentelo mas tarde, redireccionando ... ";
+                
+                /* Redireccionamos a los 3 segundos con la etiqueta meta */
+                echo "<meta http-equiv='refresh' content='3; ". Url::toRoute("site/view") ."'>";
+                }
+
+            }
+            else
+            {
+                echo "En estos momentos no se puede eliminar al alumnos
+                por favor intentelo mas tarde, redireccionando ... ";
+                
+                /* Redireccionamos a los 3 segundos con la etiqueta meta */
+                echo "<meta http-equiv='refresh' content='3; ". Url::toRoute("site/view") ."'>";
+
+            }
+
+        }
+        else 
+        {
+            /* Redireccionamos a la vista se coloca dentro 
+            de corchetes el nombre del controlador / la funcion */
+            return $this->redirect(["site/view"]);
+        }
+
+    }
 
     public function actionView()
     {
@@ -76,7 +221,7 @@ class SiteController extends Controller
         else 
         {
             /* Mostamos todos los registros de la tabla alumnos */
-            $talbe = Alumnos::find();
+            $table = Alumnos::find();
             $count = clone $table;
 
             $pages = new Pagination([
